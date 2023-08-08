@@ -1,4 +1,4 @@
-﻿using congestion.calculator.Enums;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,6 +16,6 @@ namespace congestion.calculator.Entities
         public virtual CityEntity City { get; set; }
 
         [Required]
-        public DayOfWeekEnum DayOfWeek { get; set; }
+        public DayOfWeek DayOfWeek { get; set; }
     }
 }

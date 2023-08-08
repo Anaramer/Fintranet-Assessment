@@ -8,13 +8,7 @@ namespace congestion.calculator.Entities
     {
         [Key]
         public int Id { get; set; }
-
         [Required]
-        public int CityId { get; set; }
-
-        [ForeignKey("CityId")]
-        public virtual CityEntity City { get; set; }
-
         public DateTime HolidayDate { get; set; }
     }
 }
