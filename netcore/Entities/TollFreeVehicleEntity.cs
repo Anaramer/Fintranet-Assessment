@@ -13,7 +13,7 @@ namespace congestion.calculator.Entities
         public int CityId { get; set; }
 
         [ForeignKey("CityId")]
-        public CityEntity City { get; set; }
+        public virtual CityEntity City { get; set; }
 
         [Required]
         public VehicleEnum Vehicle { get; set; }
