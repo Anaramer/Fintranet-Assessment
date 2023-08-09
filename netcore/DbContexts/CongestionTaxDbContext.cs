@@ -25,12 +25,16 @@ namespace congestion.calculator.DbContexts
                 new CityEntity()
                 {
                     Id = 1,
-                    Name = "Gothenburg"
+                    Name = "Gothenburg",
+                    MaxTaxInOneDay = 60,
+                    SingleChargePeriodMinute = 60
                 },
                 new CityEntity()
                 {
                     Id = 2,
-                    Name = "Others"
+                    Name = "Others",
+                    MaxTaxInOneDay = 30,
+                    SingleChargePeriodMinute = 30
                 }
             );
 
@@ -205,13 +209,13 @@ namespace congestion.calculator.DbContexts
                 {
                     Id = 1,
                     CityId = 1,
-                    DayOfWeek = DayOfWeekEnum.Saturday,
+                    DayOfWeek = DayOfWeek.Saturday,
                 },
                 new TollFreeDayOfWeekEntity()
                 {
                     Id = 2,
                     CityId = 1,
-                    DayOfWeek = DayOfWeekEnum.Sunday,
+                    DayOfWeek = DayOfWeek.Sunday,
                 }
             );
 
