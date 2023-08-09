@@ -1,11 +1,9 @@
-using System;
-using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
-using congestion.calculator;
-using congestion.calculator.Entities;
 using congestion.calculator.Enums;
 using congestion.calculator.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 public class CongestionTaxCalculatorService
 {
@@ -42,39 +40,71 @@ public class CongestionTaxCalculatorService
 
         var city = await _cityRepository.GetCityByIdAsync(cityId);
 
-        DateTime intervalStart = dates[0];
-        int totalFee = 0;
-        foreach (DateTime date in dates)
+        var feeForDate = await GetTaxOfDateWithDetail(cityId, vehicle, dates);
+
+        Dictionary<DateTime, int> taxOfDays = new Dictionary<DateTime, int>();
+
+        foreach (var item in feeForDate.OrderBy(q => q.Key))
         {
-            int nextFee = await GetTollFee(city.Id, date, vehicle);
-            int tempFee =await GetTollFee(city.Id, intervalStart, vehicle);
-
-            long diffInMillies = date.Millisecond - intervalStart.Millisecond;
-            long minutes = diffInMillies / 1000 / 60;
-
-            if (minutes <= city.SingleChargePeriodMinute)
+            DateTime dateTimeClear = new DateTime(item.Key.Year, item.Key.Month, item.Key.Day);
+            if (taxOfDays.Keys.FirstOrDefault(q => q == dateTimeClear) == default)
             {
-                if (totalFee > 0) totalFee -= tempFee;
-                if (nextFee >= tempFee) tempFee = nextFee;
-                totalFee += tempFee;
+                taxOfDays.Add(item.Key, 0);
+            }
+
+            taxOfDays[dateTimeClear] += item.Value;
+
+            if (taxOfDays[dateTimeClear] > city.MaxTaxInOneDay)
+                taxOfDays[dateTimeClear] = city.MaxTaxInOneDay;
+        }
+
+        return taxOfDays.Sum(q => q.Value);
+    }
+
+    public async Task<Dictionary<DateTime, int>> GetTaxOfDateWithDetail(int cityId, VehicleEnum vehicle, DateTime[] dates)
+    {
+        if (!await _cityRepository.IsExistAsync(cityId))
+        {
+            //throw not found error
+            return null;
+        }
+
+        var city = await _cityRepository.GetCityByIdAsync(cityId);
+
+        Dictionary<DateTime, int> resultFeeForDate = new Dictionary<DateTime, int>();
+
+        foreach (var date in dates.OrderBy(q => q.Date))
+        {
+            if (resultFeeForDate.Keys.FirstOrDefault(q => q == date) == default)
+            {
+                resultFeeForDate.Add(date, 0);
+            }
+
+            var lastBefore = resultFeeForDate.Keys.LastOrDefault(q => q <= date);
+            long diffTime = (date.Millisecond - lastBefore.Millisecond) / (1000 * 60); // as minute
+
+            var fee = await GetTollFee(city.Id, date, vehicle);
+
+            if (date.Year == lastBefore.Year
+                && date.Month == lastBefore.Month
+                && date.Day == lastBefore.Day // check to be in the same day
+                && diffTime < city.SingleChargePeriodMinute)
+            {
+                if (resultFeeForDate[date] < fee)
+                    resultFeeForDate[date] = fee;
             }
             else
             {
-                totalFee += nextFee;
+                resultFeeForDate[date] = fee;
             }
         }
-        if (totalFee > city.MaxTaxInOneDay) totalFee = city.MaxTaxInOneDay;
-        return totalFee;
-    }
 
-    private async Task<bool> IsTollFreeVehicle(int cityId, VehicleEnum vehicle)
-    {
-        return await _tollFreeVehicleRepository.IsExistAsync(cityId, vehicle);
+        return resultFeeForDate;
     }
 
     public async Task<int> GetTollFee(int cityId, DateTime date, VehicleEnum vehicle)
     {
-        if (await IsTollFreeDate(cityId,date) || await IsTollFreeVehicle(cityId,vehicle)) 
+        if (await IsTollFreeDate(cityId, date) || await IsTollFreeVehicle(cityId, vehicle))
             return 0;
 
         int timeOfAction = (date.Hour * 60) + date.Minute;
@@ -86,12 +116,17 @@ public class CongestionTaxCalculatorService
         return tollFee?.Fee ?? 0;
     }
 
-    private async Task<bool> IsTollFreeDate(int cityId,DateTime date)
+    private async Task<bool> IsTollFreeDate(int cityId, DateTime date)
     {
         var isFreeDate = await _tollFreeDateRepository.IsExistAsync(date);
         var isFreeDayOfWeek = await _tollFreeDayOfWeekRepository.IsExistAsync(cityId, date.DayOfWeek);
         var isFreeMonth = await _tollFreeMonthRepository.IsExistAsync(cityId, (MonthEnum)date.Month);
 
         return isFreeDate || isFreeDayOfWeek || isFreeMonth;
+    }
+
+    private async Task<bool> IsTollFreeVehicle(int cityId, VehicleEnum vehicle)
+    {
+        return await _tollFreeVehicleRepository.IsExistAsync(cityId, vehicle);
     }
 }
