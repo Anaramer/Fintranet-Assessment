@@ -10,5 +10,10 @@ namespace congestion.calculator.Entities
         [Required]
         [MaxLength(50)]
         public string Name { get; set; }
+
+        public int MaxTaxInOneDay { get; set; }
+
+        [MinLength(1)]
+        public int SingleChargePeriodMinute { get; set; }
     }
 }
