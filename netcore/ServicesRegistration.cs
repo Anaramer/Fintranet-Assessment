@@ -1,4 +1,5 @@
-﻿using congestion.calculator.DbContexts;
+﻿using System;
+using congestion.calculator.DbContexts;
 using congestion.calculator.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -8,12 +9,14 @@ namespace congestion.calculator
 {
     public static class ServicesRegistration
     {
-        public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection ConfigureCongestionTaxServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<CongestionTaxDbContext>(options =>
             {
-                options.UseSqlite(configuration.GetConnectionString("CongestionConnectionString"));
+                options.UseSqlite(configuration.GetConnectionString("CongestionConnectionString") 
+                                  ?? throw new InvalidOperationException(nameof(CongestionTaxDbContext)));
             });
+
 
             services.AddScoped<ITollFeeRepository, TollFeeRepository>();
             services.AddScoped<ITollFreeDateRepository, TollFreeDateRepository>();
