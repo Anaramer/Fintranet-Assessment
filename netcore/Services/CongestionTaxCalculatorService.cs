@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
+using congestion.calculator.DTOs;
 
-namespace congestion.calculator
+namespace congestion.calculator.Services
 {
-    public class CongestionTaxCalculatorService
+    public class CongestionTaxCalculatorService : ICongestionTaxCalculatorService
     {
         private readonly ITollFeeRepository _tollFeeRepository;
         private readonly ITollFreeDayOfWeekRepository _tollFreeDayOfWeekRepository;
@@ -15,6 +17,7 @@ namespace congestion.calculator
         private readonly ITollFreeDateRepository _tollFreeDateRepository;
         private readonly ITollFreeMonthRepository _tollFreeMonthRepository;
         private readonly ICityRepository _cityRepository;
+        private readonly IMapper _mapper;
 
         public CongestionTaxCalculatorService(
             ITollFeeRepository tollFeeRepository,
@@ -22,7 +25,8 @@ namespace congestion.calculator
             ITollFreeVehicleRepository tollFreeVehicleRepository,
             ITollFreeDateRepository tollFreeDateRepository,
             ITollFreeMonthRepository tollFreeMonthRepository,
-            ICityRepository cityRepository)
+            ICityRepository cityRepository,
+            IMapper mapper)
         {
             _tollFeeRepository = tollFeeRepository;
             _tollFreeDayOfWeekRepository = tollFreeDayOfWeekRepository;
@@ -30,6 +34,7 @@ namespace congestion.calculator
             _tollFreeDateRepository = tollFreeDateRepository;
             _tollFreeMonthRepository = tollFreeMonthRepository;
             _cityRepository = cityRepository;
+            _mapper = mapper;
         }
 
         public async Task<int> GetTax(int cityId, VehicleEnum vehicle, DateTime[] dates)
@@ -51,7 +56,7 @@ namespace congestion.calculator
                 DateTime dateTimeClear = new DateTime(item.Key.Year, item.Key.Month, item.Key.Day);
                 if (taxOfDays.Keys.FirstOrDefault(q => q == dateTimeClear) == default)
                 {
-                    taxOfDays.Add(item.Key, 0);
+                    taxOfDays.Add(dateTimeClear, 0);
                 }
 
                 taxOfDays[dateTimeClear] += item.Value;
@@ -104,12 +109,18 @@ namespace congestion.calculator
             return resultFeeForDate;
         }
 
-        public async Task<int> GetTollFee(int cityId, DateTime date, VehicleEnum vehicle)
+        public async Task<IEnumerable<CityDto>> GetAllCities()
+        {
+            var cities = await _cityRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<CityDto>>(cities);
+        }
+
+        private async Task<int> GetTollFee(int cityId, DateTime date, VehicleEnum vehicle)
         {
             if (await IsTollFreeDate(cityId, date) || await IsTollFreeVehicle(cityId, vehicle))
                 return 0;
 
-            int timeOfAction = (date.Hour * 60) + date.Minute;
+            int timeOfAction = date.Hour * 60 + date.Minute;
 
             var tollFees = await _tollFeeRepository.GetAllByCityIdAsync(cityId);
 
