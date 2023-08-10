@@ -27,5 +27,10 @@ namespace congestion.calculator.Repositories
         {
             return await _dbContext.Cities.AnyAsync(q => q.Id == id);
         }
+
+        public async Task<IEnumerable<CityEntity>> GetAllAsync()
+        {
+            return await _dbContext.Cities.ToListAsync();
+        }
     }
 }

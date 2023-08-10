@@ -11,5 +11,6 @@ namespace congestion.calculator.Repositories
     {
         Task<CityEntity> GetCityByIdAsync(int id);
         Task<bool> IsExistAsync(int id);
+        Task<IEnumerable<CityEntity>> GetAllAsync();
     }
 }
